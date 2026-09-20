@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Worldwise – Global Trivia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Literata:opsz,wght@7..72,400..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#E4EEF1; --surface:#FFFFFF; --ink:#0F2A4A; --ink-2:#4A6078; --line:#B9CDD6;
+    --accent:#F0B429; --accent-ink:#0F2A4A;
+    --good:#1B7F55; --good-bg:#DDF2E7; --bad:#B72F43; --bad-bg:#F9E0E4;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#0B1A2C; --surface:#12263D; --ink:#E8F0F7; --ink-2:#9DB2C6; --line:#2A4662;
+      --accent:#F0B429; --accent-ink:#0B1A2C;
+      --good:#4FC98F; --good-bg:#123B2E; --bad:#FF7A8C; --bad-bg:#40202A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#0B1A2C; --surface:#12263D; --ink:#E8F0F7; --ink-2:#9DB2C6; --line:#2A4662;
+    --accent:#F0B429; --accent-ink:#0B1A2C;
+    --good:#4FC98F; --good-bg:#123B2E; --bad:#FF7A8C; --bad-bg:#40202A;
+  }
+  html { height:100%; scroll-padding-top:env(safe-area-inset-top,0px); }
+  *, *::before, *::after { box-sizing:border-box; }
+  body {
+    margin:0; min-height:100%; background:var(--bg); color:var(--ink);
+    font-family:"Bricolage Grotesque", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-optical-sizing:auto; line-height:1.45;
+  }
+  [hidden] { display:none !important; }
+  button { font:inherit; color:inherit; }
+  :focus-visible { outline:3px solid var(--accent); outline-offset:3px; }
+
+  .wrap { max-width:640px; margin:0 auto; padding:28px 20px 56px; position:relative; }
+  .screen { position:relative; overflow-x:clip; }
+
+  /* ---------- Start ---------- */
+  .globe { position:absolute; top:-46px; right:-96px; width:340px; height:340px; pointer-events:none; }
+  .globe .g { fill:none; stroke:var(--line); stroke-width:1.5; stroke-dasharray:1; stroke-dashoffset:1;
+              animation:draw 2.2s ease-out forwards; animation-delay:calc(var(--i) * .12s); }
+  .globe .pin { fill:var(--accent); }
+  @keyframes draw { to { stroke-dashoffset:0; } }
+  .start-body { position:relative; z-index:1; }
+  h1 { font-size:clamp(3.2rem, 14vw, 5.2rem); font-weight:800; letter-spacing:-.035em; line-height:.92; margin:56px 0 18px; }
+  .lede { font-size:1.15rem; max-width:30ch; margin:0 0 32px; color:var(--ink-2); }
+  .modes { display:grid; gap:12px; }
+  .mode {
+    display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:16px; width:100%;
+    text-align:left; padding:16px 18px; background:var(--surface); border:2px solid var(--line);
+    border-radius:16px; cursor:pointer; transition:border-color .15s, transform .15s;
+  }
+  .mode:hover { border-color:var(--ink); }
+  .mode:active { transform:scale(.99); }
+  .mode .name { font-size:1.35rem; font-weight:700; letter-spacing:-.01em; display:block; }
+  .mode .blurb { color:var(--ink-2); font-size:.95rem; display:block; }
+  .mode .meta { color:var(--ink-2); font-size:.85rem; display:block; margin-top:4px; }
+  .mode .best { font-weight:700; font-size:.9rem; text-align:right; white-space:nowrap; }
+  .bars { display:flex; align-items:flex-end; gap:3px; height:28px; }
+  .bars i { width:7px; border-radius:2px; background:var(--line); display:block; }
+  .bars i:nth-child(1){height:10px} .bars i:nth-child(2){height:19px} .bars i:nth-child(3){height:28px}
+  .bars i.on { background:var(--ink); }
+  .foot { margin-top:22px; color:var(--ink-2); font-size:.9rem; }
+
+  /* ---------- Quiz ---------- */
+  .hud { display:flex; justify-content:space-between; align-items:baseline; gap:12px; font-size:.95rem; }
+  .hud .mode-name { font-weight:700; margin-right:8px; }
+  .hud .muted { color:var(--ink-2); }
+  .hud-right { display:flex; align-items:baseline; gap:14px; }
+  .hud .streak { color:var(--good); font-weight:600; }
+  .quit { background:none; border:0; padding:4px 2px; cursor:pointer; color:var(--ink-2); text-decoration:underline; text-underline-offset:3px; }
+  .quit:hover { color:var(--ink); }
+
+  .route { display:flex; align-items:center; margin:18px 0 14px; }
+  .dot { flex:none; width:14px; height:14px; border-radius:50%; border:2px solid var(--line); background:var(--bg); }
+  .dot.ok { background:var(--good); border-color:var(--good); }
+  .dot.no { background:var(--bad); border-color:var(--bad); }
+  .dot.now { border-color:var(--accent); background:var(--accent); box-shadow:0 0 0 4px color-mix(in srgb, var(--accent) 30%, transparent); }
+  .seg { flex:1; height:2px; background:var(--line); min-width:4px; }
+  .seg.done { background:var(--ink); }
+
+  .clock { display:flex; align-items:center; gap:12px; margin-bottom:26px; }
+  .timer { flex:1; height:8px; border-radius:4px; background:var(--line); overflow:hidden; }
+  .timer i { display:block; height:100%; background:var(--ink); transform-origin:left center; }
+  .timer.low i { background:var(--bad); }
+  .clock-text { min-width:3ch; text-align:right; font-weight:700; font-variant-numeric:tabular-nums; }
+
+  .cat { color:var(--ink-2); font-weight:600; font-size:.95rem; margin:0 0 8px; }
+  .question {
+    font-family:"Literata", Georgia, "Times New Roman", serif; font-weight:600;
+    font-size:clamp(1.35rem, 4.8vw, 1.8rem); line-height:1.35; margin:0 0 22px; max-width:32ch; outline:none;
+  }
+  .options { display:grid; gap:10px; }
+  .opt {
+    display:grid; grid-template-columns:2rem 1fr 1.5rem; align-items:center; gap:12px; width:100%; min-height:58px;
+    text-align:left; padding:12px 16px; font-size:1.05rem; color:var(--ink); background:var(--surface);
+    border:2px solid var(--line); border-radius:12px; cursor:pointer; transition:border-color .15s, background-color .15s;
+  }
+  .opt:hover:not(:disabled) { border-color:var(--ink); }
+  .opt:disabled { cursor:default; color:var(--ink); }
+  .opt .key { width:2rem; height:2rem; border-radius:50%; display:grid; place-items:center; font-weight:700; font-size:.9rem; background:var(--bg); color:var(--ink-2); }
+  .opt .mark { font-weight:800; font-size:1.1rem; text-align:center; }
+  .opt.correct { border-color:var(--good); background:var(--good-bg); }
+  .opt.correct .mark { color:var(--good); }
+  .opt.wrong { border-color:var(--bad); background:var(--bad-bg); }
+  .opt.wrong .mark { color:var(--bad); }
+  .opt.dim { opacity:.55; }
+
+  .feedback { margin-top:20px; padding:18px; border-radius:14px; background:var(--surface); border-left:6px solid var(--line); }
+  .feedback.ok { border-left-color:var(--good); }
+  .feedback.no { border-left-color:var(--bad); }
+  .feedback h3 { margin:0 0 4px; font-size:1.2rem; }
+  .feedback p { margin:0 0 14px; }
+  .feedback .ans { font-weight:600; }
+  .btn {
+    display:inline-block; padding:12px 22px; border-radius:12px; border:2px solid var(--ink);
+    background:var(--ink); color:var(--bg); font-weight:700; font-size:1rem; cursor:pointer;
+  }
+  .btn:hover { filter:brightness(1.12); }
+  .btn.ghost { background:transparent; color:var(--ink); }
+  .btn.ghost:hover { background:var(--surface); filter:none; }
+
+  /* ---------- Result ---------- */
+  .result h2 { font-size:clamp(2.4rem, 10vw, 3.6rem); line-height:1; letter-spacing:-.03em; font-weight:800; margin:30px 0 10px; }
+  .rating { font-size:1.25rem; font-weight:600; margin:0 0 6px; }
+  .points { color:var(--ink-2); margin:0 0 26px; }
+  .actions { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:34px; }
+  .review h3 { font-size:1.15rem; margin:0 0 12px; }
+  .review ul { list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+  .review li { background:var(--surface); border-left:6px solid var(--bad); border-radius:10px; padding:12px 14px; }
+  .review .rq { font-family:"Literata", Georgia, serif; margin:0 0 4px; }
+  .review .ra { color:var(--ink-2); font-size:.95rem; margin:0; }
+  .review .ra b { color:var(--good); }
+  .perfect { background:var(--good-bg); border-radius:12px; padding:14px 16px; font-weight:600; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation:none !important; transition:none !important; }
+    .globe .g { stroke-dashoffset:0; }
+  }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <section id="screen-start" class="screen">
+    <svg class="globe" id="globe" viewBox="0 0 320 320" aria-hidden="true"></svg>
+    <div class="start-body">
+      <h1>Worldwise</h1>
+      <p class="lede">Ten questions about the world we all share. Pick your difficulty.</p>
+      <div class="modes" id="modes"></div>
+      <p class="foot">Answer faster to earn bonus points. Keys 1 to 4 also work.</p>
+    </div>
+  </section>
+
+  <section id="screen-quiz" class="screen" hidden>
+    <div class="hud">
+      <div><span class="mode-name" id="hud-mode"></span><span class="muted" id="hud-count"></span></div>
+      <div class="hud-right">
+        <span class="streak" id="hud-streak"></span>
+        <span id="hud-score">0 points</span>
+        <button class="quit" id="quit" type="button">Quit</button>
+      </div>
+    </div>
+    <div class="route" id="route" aria-hidden="true"></div>
+    <div class="clock">
+      <div class="timer" id="timer" aria-hidden="true"><i id="timer-bar"></i></div>
+      <div class="clock-text" id="timer-text"></div>
+    </div>
+    <p class="cat" id="cat"></p>
+    <h2 class="question" id="question" tabindex="-1"></h2>
+    <div class="options" id="options" role="group" aria-label="Answer choices"></div>
+    <div class="feedback" id="feedback" aria-live="polite" hidden></div>
+  </section>
+
+  <section id="screen-result" class="screen result" hidden></section>
+
+</main>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------------- Settings ---------------- */
+  var MODES = {
+    easy:   { label: "Easy",   level: 1, blurb: "Well-known facts about our world.",            count: 10, time: 25, base: 100 },
+    medium: { label: "Medium", level: 2, blurb: "Geography, history and world affairs.",        count: 10, time: 20, base: 150 },
+    hard:   { label: "Hard",   level: 3, blurb: "Deep cuts for seasoned world-watchers.",       count: 10, time: 15, base: 200 }
+  };
+
+  /* Each question: c = category, q = question, a = answers (FIRST one is correct; order is shuffled in play), e = explanation */
+  var QUESTIONS = {
+    easy: [
+      { c:"Geography", q:"Which is the largest ocean on Earth?", a:["Pacific Ocean","Atlantic Ocean","Indian Ocean","Arctic Ocean"], e:"The Pacific covers about a third of Earth's surface, more than all the land combined." },
+      { c:"Geography", q:"On which continent is the Sahara Desert?", a:["Africa","Asia","Australia","South America"], e:"The Sahara stretches across northern Africa and is comparable in size to the United States." },
+      { c:"Geography", q:"What is the capital of Japan?", a:["Tokyo","Kyoto","Osaka","Seoul"], e:"Tokyo became the capital in 1868, when the emperor moved there from Kyoto." },
+      { c:"Geography", q:"How many continents are there in the most widely used model?", a:["Seven","Five","Six","Eight"], e:"Africa, Antarctica, Asia, Australia/Oceania, Europe, North America and South America." },
+      { c:"Science", q:"Which planet is known as the Red Planet?", a:["Mars","Venus","Jupiter","Mercury"], e:"Iron oxide dust on the surface gives Mars its rusty color." },
+      { c:"Nature", q:"Which country is the kangaroo native to?", a:["Australia","New Zealand","South Africa","Brazil"], e:"Kangaroos are native to Australia, where they are a national symbol." },
+      { c:"Geography", q:"Which river flows through the Egyptian capital, Cairo?", a:["The Nile","The Congo","The Niger","The Zambezi"], e:"The Nile flows north through Egypt and empties into the Mediterranean Sea." },
+      { c:"Culture", q:"Which language has the most native speakers in the world?", a:["Mandarin Chinese","English","Spanish","Hindi"], e:"Mandarin has more than 900 million native speakers." },
+      { c:"History", q:"Which country gave the Statue of Liberty to the United States?", a:["France","Britain","Spain","Germany"], e:"It was dedicated in 1886 as a gift celebrating friendship and liberty." },
+      { c:"Geography", q:"What is the highest mountain above sea level?", a:["Mount Everest","K2","Kilimanjaro","Mont Blanc"], e:"Everest rises about 8,849 meters on the border of Nepal and China." },
+      { c:"Science", q:"Which gas do plants take in from the air for photosynthesis?", a:["Carbon dioxide","Oxygen","Nitrogen","Hydrogen"], e:"Plants turn carbon dioxide and water into sugars, releasing oxygen." },
+      { c:"Geography", q:"Which country's outline is often compared to a boot?", a:["Italy","Greece","Portugal","Chile"], e:"Italy's peninsula is famously boot-shaped, with Sicily near the 'toe'." },
+      { c:"World affairs", q:"Which organization, headquartered in New York City, was founded in 1945 to promote peace?", a:["United Nations","NATO","World Bank","UNESCO"], e:"The UN began with 51 member states and now has 193." },
+      { c:"Geography", q:"What is the capital of Bangladesh?", a:["Dhaka","Chattogram","Kathmandu","Karachi"], e:"Dhaka is one of the most densely populated cities in the world." },
+      { c:"Geography", q:"Which is the largest country in the world by area?", a:["Russia","Canada","China","United States"], e:"Russia covers more than 17 million square kilometers and spans 11 time zones." }
+    ],
+    medium: [
+      { c:"Geography", q:"What is the capital of Australia?", a:["Canberra","Sydney","Melbourne","Perth"], e:"Canberra was purpose-built as a compromise between rivals Sydney and Melbourne." },
+      { c:"History", q:"In which year did the Berlin Wall fall?", a:["1989","1991","1985","1979"], e:"The Wall opened on 9 November 1989, and Germany reunified the following year." },
+      { c:"Science", q:"Which chemical element has the symbol Au?", a:["Gold","Silver","Aluminium","Argon"], e:"Au comes from the Latin word aurum, meaning gold." },
+      { c:"Geography", q:"The historic city of Timbuktu is in which country?", a:["Mali","Niger","Morocco","Sudan"], e:"Timbuktu was a major center of trade and Islamic scholarship in medieval times." },
+      { c:"Environment", q:"Which 2015 agreement aims to hold global warming well below 2°C?", a:["Paris Agreement","Kyoto Protocol","Montreal Protocol","Rio Declaration"], e:"Countries adopted it at the COP21 climate conference in Paris and agreed to pursue 1.5°C." },
+      { c:"Geography", q:"Which is the longest river in Europe?", a:["Volga","Danube","Rhine","Seine"], e:"The Volga runs about 3,500 km through Russia and into the Caspian Sea." },
+      { c:"World affairs", q:"Which UN agency, based in Geneva, leads international public health efforts?", a:["World Health Organization","UNICEF","FAO","UNESCO"], e:"The WHO was established in 1948 and coordinates global responses to health emergencies." },
+      { c:"Geography", q:"What is the smallest country in the world by area?", a:["Vatican City","Monaco","San Marino","Liechtenstein"], e:"Vatican City covers only about 0.44 square kilometers." },
+      { c:"Geography", q:"The Atacama Desert, one of the driest places on Earth, lies mainly in which country?", a:["Chile","Peru","Argentina","Mexico"], e:"Some parts of the Atacama receive almost no rainfall in a typical year." },
+      { c:"History", q:"Which country gained independence in 1971 after a war of liberation from Pakistan?", a:["Bangladesh","Sri Lanka","Nepal","Myanmar"], e:"Bangladesh emerged after the 1971 Liberation War, with victory on 16 December." },
+      { c:"History", q:"Who became the first human to travel into space, in 1961?", a:["Yuri Gagarin","Neil Armstrong","Alan Shepard","Valentina Tereshkova"], e:"Gagarin orbited Earth once aboard Vostok 1 on 12 April 1961." },
+      { c:"Geography", q:"The Suez Canal links the Mediterranean Sea with which other sea?", a:["Red Sea","Black Sea","Arabian Sea","Caspian Sea"], e:"Opened in 1869, it spares ships the long voyage around Africa." },
+      { c:"Geography", q:"Which country has the most lakes in the world?", a:["Canada","Russia","Finland","United States"], e:"Canada has an estimated two million lakes." },
+      { c:"Culture", q:"Which country hosted the first modern Olympic Games, in 1896?", a:["Greece","France","United Kingdom","United States"], e:"Athens hosted the Games, reviving a tradition from ancient Greece." },
+      { c:"Geography", q:"Challenger Deep, the deepest known point in the oceans, lies in which trench?", a:["Mariana Trench","Java Trench","Puerto Rico Trench","Tonga Trench"], e:"It sits roughly 10,900 meters below the surface of the western Pacific." },
+      { c:"Geography", q:"Which two countries share the longest international land border?", a:["Canada and the United States","Russia and China","Argentina and Chile","India and Bangladesh"], e:"The Canada–US border runs about 8,900 km, including the Alaska stretch." }
+    ],
+    hard: [
+      { c:"Geography", q:"Which river flows through or borders the most countries?", a:["Danube","Nile","Amazon","Rhine"], e:"The Danube touches ten countries, more than any other river in the world." },
+      { c:"Geography", q:"Which major city sits on two continents?", a:["Istanbul","Cairo","Moscow","Baku"], e:"The Bosphorus strait divides Istanbul into a European side and an Asian side." },
+      { c:"Geography", q:"What is the capital of Kazakhstan?", a:["Astana","Almaty","Tashkent","Bishkek"], e:"It was renamed Nur-Sultan in 2019, then changed back to Astana in 2022." },
+      { c:"World affairs", q:"The 1944 Bretton Woods conference created the IMF and which other institution?", a:["The World Bank","The World Trade Organization","The United Nations","The OECD"], e:"The International Bank for Reconstruction and Development, now part of the World Bank Group, helped rebuild postwar economies." },
+      { c:"Geography", q:"Which country is entirely surrounded by South Africa?", a:["Lesotho","Eswatini","Botswana","Namibia"], e:"Lesotho's lowest point is about 1,400 meters, the highest of any country's lowest point." },
+      { c:"Geography", q:"Which of these countries is doubly landlocked, meaning all of its neighbors are landlocked too?", a:["Uzbekistan","Mongolia","Bolivia","Ethiopia"], e:"To reach an ocean from Uzbekistan, you must cross at least two borders." },
+      { c:"World affairs", q:"The 1648 Peace of Westphalia is often cited as the origin of which idea in international relations?", a:["State sovereignty","Free trade","Collective security","Universal suffrage"], e:"It helped establish the principle that each state has authority over its own territory." },
+      { c:"Environment", q:"Which 1997 treaty first set binding emissions targets for developed countries?", a:["Kyoto Protocol","Montreal Protocol","Paris Agreement","Basel Convention"], e:"Adopted in Kyoto in 1997, it entered into force in 2005." },
+      { c:"Environment", q:"What was the main cause of the Aral Sea's dramatic shrinking?", a:["Its feeder rivers were diverted for irrigation","Tectonic shifts drained it","Long-term ice-age melt","Oil extraction beneath it"], e:"From the 1960s, water from the Amu Darya and Syr Darya was diverted to irrigate cotton and other crops." },
+      { c:"Geography", q:"The Strait of Malacca lies between the Malay Peninsula and which island?", a:["Sumatra","Borneo","Java","Sri Lanka"], e:"It is one of the busiest shipping lanes on Earth." },
+      { c:"World affairs", q:"In which year did the UN General Assembly adopt the Universal Declaration of Human Rights?", a:["1948","1945","1955","1966"], e:"It was adopted in Paris on 10 December 1948, and that date is now Human Rights Day." },
+      { c:"World affairs", q:"Which African country has the largest population?", a:["Nigeria","Ethiopia","Egypt","DR Congo"], e:"Nigeria has well over 200 million people." },
+      { c:"Economy", q:"Which country is the world's largest coffee producer?", a:["Brazil","Vietnam","Colombia","Ethiopia"], e:"Brazil grows roughly a third of the world's coffee." },
+      { c:"Geography", q:"Which Pacific country skipped 30 December 2011 by moving to the west side of the International Date Line?", a:["Samoa","Fiji","Tonga","Kiribati"], e:"Samoa switched to line up with its main trading partners, Australia and New Zealand." },
+      { c:"Geography", q:"Which sea has no coastline at all?", a:["Sargasso Sea","Caspian Sea","Dead Sea","Red Sea"], e:"The Sargasso Sea in the North Atlantic is defined by ocean currents rather than land." },
+      { c:"Culture", q:"Which country has the most UNESCO World Heritage Sites?", a:["Italy","China","France","Germany"], e:"Italy leads the list, with China close behind." }
+    ]
+  };
+
+  /* ---------------- Helpers ---------------- */
+  var $ = function (s) { return document.querySelector(s); };
+  function shuffle(arr) {
+    for (var i = arr.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+    }
+    return arr;
+  }
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+  function fmt(n) { return n.toLocaleString(); }
+  function getBest(m) { try { return parseInt(localStorage.getItem("worldwise:best:" + m), 10) || 0; } catch (e) { return 0; } }
+  function setBest(m, v) { try { localStorage.setItem("worldwise:best:" + m, String(v)); } catch (e) {} }
+  function reducedMotion() { return window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches; }
+
+  var screens = { start: $("#screen-start"), quiz: $("#screen-quiz"), result: $("#screen-result") };
+  function show(name) {
+    Object.keys(screens).forEach(function (k) { screens[k].hidden = k !== name; });
+    window.scrollTo(0, 0);
+  }
+
+  /* ---------------- Globe motif ---------------- */
+  (function drawGlobe() {
+    var R = 150, c = 160, parts = [], i = 0;
+    function add(s) { parts.push(s.replace("<", '<').replace(" />", ' class="g" pathLength="1" style="--i:' + (i++) + '" />')); }
+    add('<circle cx="160" cy="160" r="150" />');
+    add('<ellipse cx="160" cy="160" rx="' + (R * Math.cos(Math.PI / 6)).toFixed(1) + '" ry="150" />');
+    add('<ellipse cx="160" cy="160" rx="' + (R * Math.cos(Math.PI / 3)).toFixed(1) + '" ry="150" />');
+    add('<line x1="160" y1="10" x2="160" y2="310" />');
+    [0, 30, 60, -30, -60].forEach(function (lat) {
+      var r = lat * Math.PI / 180, y = c - R * Math.sin(r), hw = R * Math.cos(r);
+      add('<line x1="' + (c - hw).toFixed(1) + '" y1="' + y.toFixed(1) + '" x2="' + (c + hw).toFixed(1) + '" y2="' + y.toFixed(1) + '" />');
+    });
+    parts.push('<circle class="pin" cx="214" cy="112" r="7" />');
+    $("#globe").innerHTML = parts.join("");
+  })();
+
+  /* ---------------- Mode list ---------------- */
+  function renderModes() {
+    var box = $("#modes");
+    box.innerHTML = "";
+    Object.keys(MODES).forEach(function (key) {
+      var m = MODES[key];
+      var b = el("button", "mode"); b.type = "button";
+      var bars = el("span", "bars");
+      for (var i = 1; i <= 3; i++) { var s = el("i"); if (i <= m.level) s.className = "on"; bars.appendChild(s); }
+      var mid = el("span");
+      mid.appendChild(el("span", "name", m.label));
+      mid.appendChild(el("span", "blurb", m.blurb));
+      mid.appendChild(el("span", "meta", m.count + " questions, " + m.time + " seconds each"));
+      b.appendChild(bars); b.appendChild(mid);
+      var best = getBest(key);
+      b.appendChild(el("span", "best", best ? "Best " + fmt(best) : ""));
+      b.setAttribute("aria-label", m.label + " mode. " + m.blurb + " " + m.count + " questions, " + m.time + " seconds each." + (best ? " Best score " + best + "." : ""));
+      b.addEventListener("click", function () { startGame(key); });
+      box.appendChild(b);
+    });
+  }
+
+  /* ---------------- Game state ---------------- */
+  var S = null;
+
+  function startGame(mode) {
+    var cfg = MODES[mode];
+    var picked = shuffle(QUESTIONS[mode].slice()).slice(0, cfg.count).map(function (q) {
+      return {
+        c: q.c, q: q.q, e: q.e,
+        opts: shuffle(q.a.map(function (t, i) { return { t: t, ok: i === 0 }; }))
+      };
+    });
+    S = { mode: mode, cfg: cfg, qs: picked, i: 0, score: 0, streak: 0, results: [], answered: false, raf: 0, deadline: 0, hiddenAt: 0, lastSecs: -1 };
+    $("#hud-mode").textContent = cfg.label;
+    buildRoute();
+    show("quiz");
+    renderQuestion();
+  }
+
+  function buildRoute() {
+    var r = $("#route"); r.innerHTML = "";
+    for (var i = 0; i < S.qs.length; i++) {
+      if (i > 0) r.appendChild(el("span", "seg"));
+      r.appendChild(el("span", "dot"));
+    }
+  }
+  function updateRoute() {
+    var dots = $("#route").querySelectorAll(".dot"), segs = $("#route").querySelectorAll(".seg");
+    dots.forEach(function (d, i) {
+      var cls = "dot";
+      if (i < S.results.length) cls += S.results[i].ok ? " ok" : " no";
+      else if (i === S.i) cls += " now";
+      d.className = cls;
+    });
+    segs.forEach(function (s, i) { s.className = "seg" + (i < S.results.length ? " done" : ""); });
+  }
+  function updateHud() {
+    $("#hud-count").textContent = "Question " + (S.i + 1) + " of " + S.qs.length;
+    $("#hud-score").textContent = fmt(S.score) + " points";
+    $("#hud-streak").textContent = S.streak >= 2 ? S.streak + " in a row" : "";
+  }
+
+  function renderQuestion() {
+    var q = S.qs[S.i];
+    S.answered = false;
+    updateHud(); updateRoute();
+    $("#cat").textContent = q.c;
+    var qEl = $("#question"); qEl.textContent = q.q;
+    var box = $("#options"); box.innerHTML = "";
+    q.opts.forEach(function (o, i) {
+      var b = el("button", "opt"); b.type = "button";
+      b.appendChild(el("span", "key", String.fromCharCode(65 + i)));
+      b.appendChild(el("span", "txt", o.t));
+      b.appendChild(el("span", "mark"));
+      b.addEventListener("click", function () { answer(i); });
+      box.appendChild(b);
+    });
+    $("#feedback").hidden = true;
+    qEl.focus({ preventScroll: true });
+    startTimer();
+  }
+
+  /* ---------------- Timer ---------------- */
+  function startTimer() {
+    cancelAnimationFrame(S.raf);
+    S.deadline = performance.now() + S.cfg.time * 1000;
+    S.lastSecs = -1;
+    tick();
+  }
+  function tick() {
+    var total = S.cfg.time * 1000;
+    var left = Math.max(0, S.deadline - performance.now());
+    $("#timer-bar").style.transform = "scaleX(" + (left / total) + ")";
+    var secs = Math.ceil(left / 1000);
+    if (secs !== S.lastSecs) {
+      S.lastSecs = secs;
+      $("#timer-text").textContent = secs + "s";
+      $("#timer").classList.toggle("low", secs <= 5);
+    }
+    if (left <= 0) { answer(-1); return; }
+    S.raf = requestAnimationFrame(tick);
+  }
+  document.addEventListener("visibilitychange", function () {
+    if (!S || S.answered || screens.quiz.hidden) return;
+    if (document.hidden) { S.hiddenAt = performance.now(); cancelAnimationFrame(S.raf); }
+    else { S.deadline += performance.now() - S.hiddenAt; tick(); }
+  });
+
+  /* ---------------- Answering ---------------- */
+  function answer(idx) {
+    if (!S || S.answered) return;
+    S.answered = true;
+    cancelAnimationFrame(S.raf);
+    var q = S.qs[S.i], cfg = S.cfg;
+    var left = Math.max(0, S.deadline - performance.now());
+    var correct = idx >= 0 && q.opts[idx].ok;
+    var pts = 0;
+    if (correct) pts = cfg.base + Math.round(cfg.base * 0.5 * (left / (cfg.time * 1000)));
+    S.score += pts;
+    S.streak = correct ? S.streak + 1 : 0;
+    var right = q.opts.filter(function (o) { return o.ok; })[0].t;
+    S.results.push({ ok: correct, q: q.q, ans: right });
+
+    $("#options").querySelectorAll(".opt").forEach(function (b, i) {
+      b.disabled = true;
+      var mark = b.querySelector(".mark");
+      if (q.opts[i].ok) { b.classList.add("correct"); mark.textContent = "✓"; }
+      else if (i === idx) { b.classList.add("wrong"); mark.textContent = "✕"; }
+      else b.classList.add("dim");
+    });
+
+    updateHud(); updateRoute();
+
+    var fb = $("#feedback"); fb.innerHTML = "";
+    fb.className = "feedback " + (correct ? "ok" : "no");
+    fb.appendChild(el("h3", null, correct ? "Correct, +" + pts + " points" : (idx < 0 ? "Time's up" : "Not quite")));
+    if (!correct) fb.appendChild(el("p", "ans", "The answer is " + right + "."));
+    fb.appendChild(el("p", null, q.e));
+    var last = S.i === S.qs.length - 1;
+    var nb = el("button", "btn", last ? "See results" : "Next question"); nb.type = "button";
+    nb.addEventListener("click", next);
+    fb.appendChild(nb);
+    fb.hidden = false;
+    nb.focus({ preventScroll: true });
+    fb.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+  }
+
+  function next() {
+    S.i++;
+    if (S.i >= S.qs.length) finish(); else renderQuestion();
+  }
+
+  document.addEventListener("keydown", function (e) {
+    if (!S || screens.quiz.hidden || S.answered || e.ctrlKey || e.metaKey || e.altKey) return;
+    var k = e.key.toLowerCase(), idx = -1;
+    if (k >= "1" && k <= "4") idx = parseInt(k, 10) - 1;
+    else if (k >= "a" && k <= "d") idx = k.charCodeAt(0) - 97;
+    if (idx >= 0 && idx < S.qs[S.i].opts.length) { e.preventDefault(); answer(idx); }
+  });
+
+  $("#quit").addEventListener("click", function () {
+    if (S) cancelAnimationFrame(S.raf);
+    renderModes(); show("start");
+  });
+
+  /* ---------------- Results ---------------- */
+  function finish() {
+    var total = S.qs.length;
+    var right = S.results.filter(function (r) { return r.ok; }).length;
+    var pct = right / total;
+    var rating = pct >= 0.9 ? "World-class" : pct >= 0.7 ? "Seasoned navigator" : pct >= 0.5 ? "Curious traveler" : "Just landed";
+    var prevBest = getBest(S.mode);
+    var newBest = S.score > prevBest;
+    if (newBest) setBest(S.mode, S.score);
+
+    var root = screens.result; root.innerHTML = "";
+    root.appendChild(el("h2", null, right + " of " + total + " correct"));
+    root.appendChild(el("p", "rating", rating));
+    root.appendChild(el("p", "points",
+      fmt(S.score) + " points on " + S.cfg.label + (newBest && S.score > 0 ? ". New best score!" : prevBest ? ". Your best is " + fmt(Math.max(prevBest, S.score)) + "." : ".")));
+
+    var actions = el("div", "actions");
+    var again = el("button", "btn", "Play " + S.cfg.label + " again"); again.type = "button";
+    var mode = S.mode;
+    again.addEventListener("click", function () { startGame(mode); });
+    var change = el("button", "btn ghost", "Change difficulty"); change.type = "button";
+    change.addEventListener("click", function () { renderModes(); show("start"); });
+    actions.appendChild(again); actions.appendChild(change);
+    root.appendChild(actions);
+
+    var missed = S.results.filter(function (r) { return !r.ok; });
+    var rev = el("div", "review");
+    if (missed.length) {
+      rev.appendChild(el("h3", null, "Worth another look"));
+      var ul = el("ul");
+      missed.forEach(function (m) {
+        var li = el("li");
+        li.appendChild(el("p", "rq", m.q));
+        var pa = el("p", "ra"); pa.appendChild(document.createTextNode("Answer: ")); pa.appendChild(el("b", null, m.ans));
+        li.appendChild(pa);
+        ul.appendChild(li);
+      });
+      rev.appendChild(ul);
+    } else {
+      rev.appendChild(el("p", "perfect", "Flawless round. Try a harder difficulty."));
+    }
+    root.appendChild(rev);
+    show("result");
+  }
+
+  renderModes();
+})();
+</script>
+</body>
+</html>
